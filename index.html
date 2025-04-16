@@ -9,11 +9,20 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fingerprintjs2@2.1.4/dist/fingerprint2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
     <style>
         :root {
             --systemBlue: #0A84FF;
+            --systemBlueLight: rgba(10, 132, 255, 0.1);
             --systemGreen: #30D158;
+            --systemGreenLight: rgba(48, 209, 88, 0.1);
             --systemRed: #FF453A;
+            --systemRedLight: rgba(255, 69, 58, 0.1);
+            --systemOrange: #FF9F0A;
+            --systemOrangeLight: rgba(255, 159, 10, 0.1);
+            --systemPurple: #BF5AF2;
+            --systemPurpleLight: rgba(191, 90, 242, 0.1);
             --systemGray: #8E8E93;
             --systemGray2: #636366;
             --systemGray6: #F2F2F7;
@@ -21,6 +30,7 @@
             --labelSecondary: #3C3C4399;
             --backgroundPrimary: #FFFFFF;
             --backgroundSecondary: #F2F2F7;
+            --shadowColor: rgba(0, 0, 0, 0.1);
         }
 
         * {
@@ -45,7 +55,7 @@
             padding: 20px;
             background-color: var(--backgroundPrimary);
             min-height: 100vh;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 0 20px var(--shadowColor);
         }
 
         header {
@@ -60,6 +70,22 @@
             font-size: 24px;
             font-weight: 600;
             color: var(--systemBlue);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            width: 24px;
+            height: 24px;
+            background-color: var(--systemBlue);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
         }
 
         .nav-button {
@@ -71,10 +97,13 @@
             padding: 8px 12px;
             border-radius: 8px;
             transition: all 0.3s cubic-bezier(0.2, 0.8, 0.4, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
         }
 
         .nav-button:active {
-            background-color: rgba(10, 132, 255, 0.1);
+            background-color: var(--systemBlueLight);
             transform: scale(0.96);
         }
 
@@ -83,12 +112,19 @@
             border-radius: 14px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 12px var(--shadowColor);
             transition: all 0.4s cubic-bezier(0.2, 0.8, 0.4, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px var(--shadowColor);
         }
 
         .card:active {
-            transform: scale(0.98);
+            transform: scale(0.98) translateY(0);
         }
 
         .card-header {
@@ -120,11 +156,14 @@
             width: 100%;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.2, 0.8, 0.4, 1);
+            position: relative;
+            overflow: hidden;
         }
 
         .button:disabled {
             background-color: var(--systemGray);
             opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .button:active:not(:disabled) {
@@ -140,6 +179,15 @@
             background-color: var(--systemRed);
         }
 
+        .button-warning {
+            background-color: var(--systemOrange);
+        }
+
+        .button-secondary {
+            background-color: var(--systemGray6);
+            color: var(--labelPrimary);
+        }
+
         .status-indicator {
             display: inline-block;
             width: 10px;
@@ -150,10 +198,17 @@
 
         .status-active {
             background-color: var(--systemGreen);
+            box-shadow: 0 0 0 2px var(--systemGreenLight);
         }
 
         .status-inactive {
             background-color: var(--systemGray);
+            box-shadow: 0 0 0 2px rgba(142, 142, 147, 0.1);
+        }
+
+        .status-pending {
+            background-color: var(--systemOrange);
+            box-shadow: 0 0 0 2px var(--systemOrangeLight);
         }
 
         .attendance-time {
@@ -184,6 +239,7 @@
             border-radius: 10px;
             padding: 5px;
             margin-bottom: 20px;
+            box-shadow: 0 2px 8px var(--shadowColor);
         }
 
         .tab {
@@ -195,11 +251,13 @@
             color: var(--labelSecondary);
             border-radius: 8px;
             transition: all 0.3s cubic-bezier(0.2, 0.8, 0.4, 1);
+            cursor: pointer;
         }
 
         .tab.active {
             background-color: var(--systemBlue);
             color: white;
+            font-weight: 600;
         }
 
         .attendance-history {
@@ -211,6 +269,11 @@
             justify-content: space-between;
             padding: 12px 0;
             border-bottom: 1px solid var(--systemGray6);
+            transition: all 0.2s ease;
+        }
+
+        .history-item:active {
+            background-color: var(--systemGray6);
         }
 
         .history-date {
@@ -230,7 +293,7 @@
         }
 
         .status-late {
-            color: #FF9F0A;
+            color: var(--systemOrange);
         }
 
         .modal {
@@ -247,6 +310,8 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s ease-out;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
 
         .modal.active {
@@ -262,6 +327,9 @@
             padding: 20px;
             transform: translateY(20px);
             transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.4, 1);
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
 
         .modal.active .modal-content {
@@ -272,6 +340,22 @@
             font-size: 20px;
             font-weight: 600;
             margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-icon {
+            width: 24px;
+            height: 24px;
+            background-color: var(--systemBlue);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
         }
 
         .modal-close {
@@ -282,6 +366,13 @@
             border: none;
             font-size: 20px;
             color: var(--labelSecondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--labelPrimary);
+            transform: rotate(90deg);
         }
 
         .input-group {
@@ -301,12 +392,14 @@
             border: 1px solid var(--systemGray6);
             border-radius: 10px;
             font-size: 16px;
-            transition: border-color 0.2s ease;
+            transition: all 0.2s ease;
+            background-color: var(--backgroundPrimary);
         }
 
         .input-field:focus {
             border-color: var(--systemBlue);
             outline: none;
+            box-shadow: 0 0 0 2px var(--systemBlueLight);
         }
 
         .loading {
@@ -336,6 +429,16 @@
             z-index: 1000;
             opacity: 0;
             transition: all 0.3s cubic-bezier(0.2, 0.8, 0.4, 1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 90%;
+        }
+
+        .toast-icon {
+            font-size: 16px;
         }
 
         .toast.show {
@@ -353,6 +456,7 @@
             justify-content: center;
             align-items: center;
             font-weight: 500;
+            flex-shrink: 0;
         }
 
         .user-info {
@@ -373,19 +477,236 @@
             margin-top: 2px;
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 480px) {
-            .container {
-                padding: 15px;
-            }
-            
-            .card {
-                padding: 15px;
-            }
-            
-            .button {
-                padding: 10px 15px;
-            }
+        .permission-card {
+            background-color: var(--systemGray6);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .permission-card:active {
+            transform: scale(0.98);
+        }
+
+        .permission-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .permission-title {
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .permission-toggle {
+            width: 40px;
+            height: 24px;
+            border-radius: 12px;
+            background-color: var(--systemGray);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .permission-toggle.active {
+            background-color: var(--systemGreen);
+        }
+
+        .permission-toggle-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            background-color: white;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.4, 1);
+        }
+
+        .permission-toggle.active .permission-toggle-knob {
+            left: 18px;
+        }
+
+        .permission-description {
+            font-size: 13px;
+            color: var(--labelSecondary);
+            margin-top: 5px;
+        }
+
+        .permission-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .permission-card.expanded .permission-details {
+            max-height: 200px;
+            margin-top: 10px;
+        }
+
+        .student-list {
+            margin-top: 15px;
+        }
+
+        .student-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--systemGray6);
+        }
+
+        .student-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 16px;
+            background-color: var(--systemPurple);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 500;
+            margin-right: 10px;
+        }
+
+        .student-info {
+            flex: 1;
+        }
+
+        .student-name {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .student-email {
+            font-size: 12px;
+            color: var(--labelSecondary);
+        }
+
+        .student-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .action-button {
+            width: 30px;
+            height: 30px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--systemGray6);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-button:active {
+            transform: scale(0.9);
+        }
+
+        .action-button.warning {
+            background-color: var(--systemOrangeLight);
+            color: var(--systemOrange);
+        }
+
+        .action-button.danger {
+            background-color: var(--systemRedLight);
+            color: var(--systemRed);
+        }
+
+        .share-link-container {
+            display: flex;
+            margin-top: 15px;
+            border: 1px solid var(--systemGray6);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .share-link {
+            flex: 1;
+            padding: 10px;
+            font-size: 14px;
+            border: none;
+            background-color: var(--systemGray6);
+            color: var(--labelPrimary);
+        }
+
+        .share-button {
+            padding: 0 15px;
+            background-color: var(--systemBlue);
+            color: white;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .share-button:active {
+            opacity: 0.8;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--systemGray6);
+        }
+
+        .settings-label {
+            font-weight: 500;
+        }
+
+        .settings-value {
+            color: var(--labelSecondary);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--systemGray);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--systemBlue);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
         }
 
         /* Physics-based animations */
@@ -415,35 +736,87 @@
         .spring-animation {
             animation: spring 0.4s cubic-bezier(0.2, 0.8, 0.4, 1.5);
         }
+
+        /* Floating animation */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        /* Bounce animation */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .bounce-animation {
+            animation: bounce 0.8s cubic-bezier(0.2, 0.8, 0.4, 1) infinite;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            .button {
+                padding: 10px 15px;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --labelPrimary: #FFFFFF;
+                --labelSecondary: #EBEBF599;
+                --backgroundPrimary: #1C1C1E;
+                --backgroundSecondary: #000000;
+                --systemGray6: #2C2C2E;
+                --shadowColor: rgba(0, 0, 0, 0.3);
+            }
+
+            .input-field {
+                background-color: var(--backgroundPrimary);
+                border-color: var(--systemGray6);
+                color: white;
+            }
+
+            .button-secondary {
+                background-color: var(--systemGray6);
+                color: var(--labelPrimary);
+            }
+
+            .permission-card {
+                background-color: rgba(44, 44, 46, 0.5);
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <div class="logo">SecureAttend</div>
+            <div class="logo">
+                <div class="logo-icon">SA</div>
+                SecureAttend
+            </div>
             <button class="nav-button" id="authButton">Sign In</button>
         </header>
 
         <div id="authSection">
-            <div class="card">
-                <div class="card-header">
-                    <div>
-                        <div class="card-title">Welcome to SecureAttend</div>
-                        <div class="card-subtitle">Secure, privacy-focused attendance system</div>
-                    </div>
-                </div>
-                <div class="input-group">
-                    <label class="input-label">Email</label>
-                    <input type="email" class="input-field" id="emailInput" placeholder="your@email.com">
-                </div>
-                <div class="input-group">
-                    <label class="input-label">Password</label>
-                    <input type="password" class="input-field" id="passwordInput" placeholder="••••••••">
-                </div>
-                <button class="button" id="loginButton">Sign In</button>
-                <div style="text-align: center; margin-top: 15px;">
-                    <button class="nav-button" id="toggleSignUp">Create Account</button>
-                </div>
+            <div class="card floating" style="text-align: center; padding: 30px;">
+                <div style="font-size: 48px; margin-bottom: 20px;">📱</div>
+                <div class="card-title" style="font-size: 24px; margin-bottom: 10px;">Welcome to SecureAttend</div>
+                <div class="card-subtitle" style="margin-bottom: 20px;">Secure, privacy-focused attendance system</div>
+                <button class="button" id="getStartedBtn">Get Started</button>
             </div>
         </div>
 
@@ -460,6 +833,7 @@
                 <div class="tab active" data-tab="checkin">Check In</div>
                 <div class="tab" data-tab="history">History</div>
                 <div class="tab" data-tab="messages">Messages</div>
+                <div class="tab" data-tab="settings">Settings</div>
             </div>
 
             <div id="checkinTab" class="tab-content">
@@ -514,7 +888,6 @@
                         <div class="card-title">Attendance History</div>
                     </div>
                     <div class="attendance-history" id="attendanceHistory">
-                        <!-- History items will be added here dynamically -->
                         <div class="history-item">
                             <div class="history-date">Loading...</div>
                             <div class="history-status">--</div>
@@ -529,7 +902,6 @@
                         <div class="card-title">Messages</div>
                     </div>
                     <div id="messagesList">
-                        <!-- Messages will be added here dynamically -->
                         <div style="text-align: center; padding: 20px; color: var(--labelSecondary);">
                             No messages yet
                         </div>
@@ -541,6 +913,250 @@
                     <button class="button" id="sendMessageBtn">Send</button>
                 </div>
             </div>
+
+            <div id="settingsTab" class="tab-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Privacy & Permissions</div>
+                    </div>
+                    
+                    <div class="permission-card" id="locationPermissionCard">
+                        <div class="permission-header">
+                            <div class="permission-title">Location Access</div>
+                            <div class="permission-toggle" id="locationToggle">
+                                <div class="permission-toggle-knob"></div>
+                            </div>
+                        </div>
+                        <div class="permission-description">
+                            Required for accurate attendance verification
+                        </div>
+                        <div class="permission-details">
+                            <p style="font-size: 13px; color: var(--labelSecondary); margin-top: 10px;">
+                                SecureAttend uses your location to verify you're physically present in class. 
+                                We only access your location during check-in and don't store your precise location long-term.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="permission-card" id="notificationsPermissionCard">
+                        <div class="permission-header">
+                            <div class="permission-title">Notifications</div>
+                            <div class="permission-toggle" id="notificationsToggle">
+                                <div class="permission-toggle-knob"></div>
+                            </div>
+                        </div>
+                        <div class="permission-description">
+                            Get reminders and important updates
+                        </div>
+                        <div class="permission-details">
+                            <p style="font-size: 13px; color: var(--labelSecondary); margin-top: 10px;">
+                                We'll send you reminders for upcoming classes and important announcements. 
+                                You can customize notification preferences in your device settings.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="permission-card" id="cameraPermissionCard">
+                        <div class="permission-header">
+                            <div class="permission-title">Camera Access</div>
+                            <div class="permission-toggle" id="cameraToggle">
+                                <div class="permission-toggle-knob"></div>
+                            </div>
+                        </div>
+                        <div class="permission-description">
+                            Optional for photo verification (coming soon)
+                        </div>
+                        <div class="permission-details">
+                            <p style="font-size: 13px; color: var(--labelSecondary); margin-top: 10px;">
+                                Future versions may allow photo verification for attendance. Currently not used.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <button class="button button-secondary" style="margin-top: 15px;" id="reportBugBtn">
+                        Report a Bug or Issue
+                    </button>
+                    
+                    <button class="button button-danger" style="margin-top: 15px;" id="logoutBtn">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="teacherSection" style="display: none;">
+            <div class="user-info">
+                <div class="avatar" id="teacherAvatar">T</div>
+                <div>
+                    <div class="user-name" id="teacherName">Teacher Name</div>
+                    <div class="user-role">Teacher</div>
+                </div>
+            </div>
+
+            <div class="tab-bar">
+                <div class="tab active" data-tab="teacherClass">Class</div>
+                <div class="tab" data-tab="teacherStudents">Students</div>
+                <div class="tab" data-tab="teacherSettings">Settings</div>
+            </div>
+
+            <div id="teacherClassTab" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Class Information</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Class Name</label>
+                        <input type="text" class="input-field" id="classNameInput" placeholder="Enter class name">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Class Location</label>
+                        <input type="text" class="input-field" id="classLocationInput" placeholder="Search for location...">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Allowed Distance (meters)</label>
+                        <input type="number" class="input-field" id="classDistanceInput" placeholder="200" value="200">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Morning Session</label>
+                        <div style="display: flex; gap: 10px;">
+                            <select class="input-field" id="morningStartInput" style="flex: 1;">
+                                <option value="7">7:00 AM</option>
+                                <option value="8">8:00 AM</option>
+                                <option value="9">9:00 AM</option>
+                            </select>
+                            <select class="input-field" id="morningEndInput" style="flex: 1;">
+                                <option value="10">10:00 AM</option>
+                                <option value="11">11:00 AM</option>
+                                <option value="12">12:00 PM</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Afternoon Session</label>
+                        <div style="display: flex; gap: 10px;">
+                            <select class="input-field" id="afternoonStartInput" style="flex: 1;">
+                                <option value="13">1:00 PM</option>
+                                <option value="14">2:00 PM</option>
+                                <option value="15">3:00 PM</option>
+                            </select>
+                            <select class="input-field" id="afternoonEndInput" style="flex: 1;">
+                                <option value="16">4:00 PM</option>
+                                <option value="17">5:00 PM</option>
+                                <option value="18">6:00 PM</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button class="button" id="saveClassBtn">Save Changes</button>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Invite Students</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Invitation Link</label>
+                        <div class="share-link-container">
+                            <input type="text" class="share-link" id="inviteLinkInput" readonly>
+                            <button class="share-button" id="copyInviteLinkBtn">Copy</button>
+                        </div>
+                    </div>
+                    
+                    <p style="font-size: 13px; color: var(--labelSecondary); margin-top: 10px;">
+                        Share this link with your students. When they sign up using this link, 
+                        they'll automatically be added to your class.
+                    </p>
+                </div>
+            </div>
+
+            <div id="teacherStudentsTab" class="tab-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Student Management</div>
+                    </div>
+                    
+                    <div class="student-list" id="studentList">
+                        <div class="student-item">
+                            <div class="student-avatar">LD</div>
+                            <div class="student-info">
+                                <div class="student-name">Loading students...</div>
+                                <div class="student-email">Please wait</div>
+                            </div>
+                            <div class="student-actions">
+                                <button class="action-button warning">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                    </svg>
+                                </button>
+                                <button class="action-button danger">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="teacherSettingsTab" class="tab-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Teacher Settings</div>
+                    </div>
+                    
+                    <div class="settings-item">
+                        <div class="settings-label">Require Location</div>
+                        <label class="switch">
+                            <input type="checkbox" id="requireLocationToggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="settings-item">
+                        <div class="settings-label">Allow Remote Check-in</div>
+                        <label class="switch">
+                            <input type="checkbox" id="allowRemoteToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="settings-item">
+                        <div class="settings-label">Attendance Notifications</div>
+                        <label class="switch">
+                            <input type="checkbox" id="attendanceNotificationsToggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="settings-item">
+                        <div class="settings-label">Default Check-in Method</div>
+                        <select class="input-field" id="checkinMethodSelect" style="margin-top: 5px;">
+                            <option value="button">Button Click</option>
+                            <option value="fingerprint">Fingerprint</option>
+                            <option value="both">Both Required</option>
+                        </select>
+                    </div>
+                    
+                    <button class="button button-secondary" style="margin-top: 15px;" id="teacherReportBtn">
+                        Report Issues
+                    </button>
+                    
+                    <button class="button button-danger" style="margin-top: 15px;" id="teacherLogoutBtn">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div id="adminSection" style="display: none;">
@@ -550,7 +1166,7 @@
                 </div>
                 <button class="button" id="manageClassesBtn">Manage Classes</button>
                 <button class="button" style="margin-top: 10px;" id="exportDataBtn">Export Attendance Data</button>
-                <button class="button button-danger" style="margin-top: 10px;" id="logoutBtn">Log Out</button>
+                <button class="button button-danger" style="margin-top: 10px;" id="adminLogoutBtn">Log Out</button>
             </div>
         </div>
     </div>
@@ -559,7 +1175,10 @@
     <div class="modal" id="authModal">
         <div class="modal-content">
             <button class="modal-close" id="closeAuthModal">&times;</button>
-            <div class="modal-title" id="authModalTitle">Sign In</div>
+            <div class="modal-title">
+                <div class="modal-icon" id="authModalIcon">{isSignUp ? '👩‍🏫' : '🔒'}</div>
+                <span id="authModalTitle">Sign In</span>
+            </div>
             <div class="input-group">
                 <label class="input-label">Email</label>
                 <input type="email" class="input-field" id="modalEmailInput" placeholder="your@email.com">
@@ -572,6 +1191,14 @@
                 <label class="input-label">Confirm Password</label>
                 <input type="password" class="input-field" id="modalConfirmPasswordInput" placeholder="••••••••">
             </div>
+            <div class="input-group" id="nameGroup" style="display: none;">
+                <label class="input-label">Full Name</label>
+                <input type="text" class="input-field" id="modalNameInput" placeholder="Your Name">
+            </div>
+            <div class="input-group" id="teacherCodeGroup" style="display: none;">
+                <label class="input-label">Teacher Code (optional)</label>
+                <input type="text" class="input-field" id="modalTeacherCodeInput" placeholder="If you're a teacher">
+            </div>
             <button class="button" id="modalAuthButton">Sign In</button>
             <div style="text-align: center; margin-top: 15px;">
                 <button class="nav-button" id="modalToggleAuth">Create Account Instead</button>
@@ -579,39 +1206,139 @@
         </div>
     </div>
 
+    <!-- Teacher Registration Modal -->
+    <div class="modal" id="teacherModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeTeacherModal">&times;</button>
+            <div class="modal-title">
+                <div class="modal-icon">👩‍🏫</div>
+                <span>Become a Teacher</span>
+            </div>
+            <div class="input-group">
+                <label class="input-label">Institution Name</label>
+                <input type="text" class="input-field" id="teacherInstitutionInput" placeholder="School or Organization">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Verification Email</label>
+                <input type="email" class="input-field" id="teacherEmailInput" placeholder="Institutional email preferred">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Create Teacher Code</label>
+                <input type="text" class="input-field" id="teacherCodeCreateInput" placeholder="Secure code for future access">
+            </div>
+            <p style="font-size: 13px; color: var(--labelSecondary); margin-bottom: 15px;">
+                As a teacher, you'll be able to create classes, manage students, and track attendance.
+                You'll receive a confirmation email with next steps.
+            </p>
+            <button class="button" id="registerTeacherBtn">Register as Teacher</button>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div class="modal" id="reportModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeReportModal">&times;</button>
+            <div class="modal-title">
+                <div class="modal-icon">🐞</div>
+                <span>Report an Issue</span>
+            </div>
+            <div class="input-group">
+                <label class="input-label">What happened?</label>
+                <select class="input-field" id="reportTypeInput">
+                    <option value="bug">Bug or Error</option>
+                    <option value="feature">Feature Request</option>
+                    <option value="security">Security Concern</option>
+                    <option value="other">Other Issue</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label class="input-label">Description</label>
+                <textarea class="input-field" id="reportDescriptionInput" rows="4" placeholder="Please describe the issue in detail..."></textarea>
+            </div>
+            <p style="font-size: 13px; color: var(--labelSecondary); margin-bottom: 15px;">
+                Reports will be sent to our support team at eldrexdelosreyesbula@gmail.com.
+                We appreciate your feedback to improve SecureAttend.
+            </p>
+            <button class="button" id="submitReportBtn">Submit Report</button>
+        </div>
+    </div>
+
+    <!-- Permission Explanation Modal -->
+    <div class="modal" id="permissionModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closePermissionModal">&times;</button>
+            <div class="modal-title">
+                <div class="modal-icon" id="permissionModalIcon">🔒</div>
+                <span id="permissionModalTitle">Permission Required</span>
+            </div>
+            <div id="permissionModalContent">
+                <p style="margin-bottom: 15px; color: var(--labelPrimary);">
+                    SecureAttend needs your permission to access <strong id="permissionName">this feature</strong>.
+                </p>
+                <p style="margin-bottom: 15px; color: var(--labelSecondary);">
+                    <span id="permissionReason">This is required for core functionality.</span>
+                    We respect your privacy and only use this data when necessary.
+                </p>
+                <div class="card" style="background-color: var(--systemGray6); margin-bottom: 15px;">
+                    <div style="font-size: 13px; color: var(--labelSecondary);">
+                        <strong>How we use this:</strong>
+                        <ul style="margin-top: 5px; padding-left: 20px;">
+                            <li id="permissionUse1">Feature functionality</li>
+                            <li id="permissionUse2">Security verification</li>
+                            <li id="permissionUse3">No unnecessary data collection</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="button button-secondary" style="flex: 1;" id="denyPermissionBtn">
+                    Not Now
+                </button>
+                <button class="button" style="flex: 1;" id="grantPermissionBtn">
+                    Allow
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
-    <div class="toast" id="toast"></div>
+    <div class="toast" id="toast">
+        <span class="toast-icon" id="toastIcon">ℹ️</span>
+        <span id="toastMessage">Notification message</span>
+    </div>
 
     <script>
         // Firebase Configuration
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCVP8zaUj2iDrooLbRQNypHqB8QNTLhGDE",
-  authDomain: "attendance-fe1c8.firebaseapp.com",
-  projectId: "attendance-fe1c8",
-  storageBucket: "attendance-fe1c8.firebasestorage.app",
-  messagingSenderId: "903463376704",
-  appId: "1:903463376704:web:d004c563d56aa286df8ca5",
-  measurementId: "G-YY5GQZPSRK"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVP8zaUj2iDrooLbRQNypHqB8QNTLhGDE",
+            authDomain: "attendance-fe1c8.firebaseapp.com",
+            projectId: "attendance-fe1c8",
+            storageBucket: "attendance-fe1c8.firebasestorage.app",
+            messagingSenderId: "903463376704",
+            appId: "1:903463376704:web:d004c563d56aa286df8ca5",
+            measurementId: "G-YY5GQZPSRK"
+        };
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // Encryption key (in a real app, this would be user-specific and securely stored)
+        const ENCRYPTION_KEY = "secure-attend-enc-key-2023";
+
         // DOM Elements
         const authSection = document.getElementById('authSection');
         const appSection = document.getElementById('appSection');
+        const teacherSection = document.getElementById('teacherSection');
         const adminSection = document.getElementById('adminSection');
         const authButton = document.getElementById('authButton');
-        const loginButton = document.getElementById('loginButton');
-        const toggleSignUp = document.getElementById('toggleSignUp');
-        const emailInput = document.getElementById('emailInput');
-        const passwordInput = document.getElementById('passwordInput');
+        const getStartedBtn = document.getElementById('getStartedBtn');
         const userName = document.getElementById('userName');
         const userRole = document.getElementById('userRole');
         const userAvatar = document.getElementById('userAvatar');
+        const teacherName = document.getElementById('teacherName');
+        const teacherAvatar = document.getElementById('teacherAvatar');
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
         const morningCheckinBtn = document.getElementById('morningCheckinBtn');
@@ -627,18 +1354,71 @@ const firebaseConfig = {
         const messageInput = document.getElementById('messageInput');
         const sendMessageBtn = document.getElementById('sendMessageBtn');
         const authModal = document.getElementById('authModal');
+        const teacherModal = document.getElementById('teacherModal');
+        const reportModal = document.getElementById('reportModal');
+        const permissionModal = document.getElementById('permissionModal');
         const closeAuthModal = document.getElementById('closeAuthModal');
+        const closeTeacherModal = document.getElementById('closeTeacherModal');
+        const closeReportModal = document.getElementById('closeReportModal');
+        const closePermissionModal = document.getElementById('closePermissionModal');
         const modalAuthButton = document.getElementById('modalAuthButton');
         const modalToggleAuth = document.getElementById('modalToggleAuth');
         const modalEmailInput = document.getElementById('modalEmailInput');
         const modalPasswordInput = document.getElementById('modalPasswordInput');
         const modalConfirmPasswordInput = document.getElementById('modalConfirmPasswordInput');
+        const modalNameInput = document.getElementById('modalNameInput');
+        const modalTeacherCodeInput = document.getElementById('modalTeacherCodeInput');
         const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+        const nameGroup = document.getElementById('nameGroup');
+        const teacherCodeGroup = document.getElementById('teacherCodeGroup');
         const authModalTitle = document.getElementById('authModalTitle');
+        const authModalIcon = document.getElementById('authModalIcon');
         const toast = document.getElementById('toast');
-        const manageClassesBtn = document.getElementById('manageClassesBtn');
-        const exportDataBtn = document.getElementById('exportDataBtn');
+        const toastMessage = document.getElementById('toastMessage');
+        const toastIcon = document.getElementById('toastIcon');
+        const reportBugBtn = document.getElementById('reportBugBtn');
+        const teacherReportBtn = document.getElementById('teacherReportBtn');
         const logoutBtn = document.getElementById('logoutBtn');
+        const teacherLogoutBtn = document.getElementById('teacherLogoutBtn');
+        const adminLogoutBtn = document.getElementById('adminLogoutBtn');
+        const registerTeacherBtn = document.getElementById('registerTeacherBtn');
+        const reportTypeInput = document.getElementById('reportTypeInput');
+        const reportDescriptionInput = document.getElementById('reportDescriptionInput');
+        const submitReportBtn = document.getElementById('submitReportBtn');
+        const permissionModalTitle = document.getElementById('permissionModalTitle');
+        const permissionModalIcon = document.getElementById('permissionModalIcon');
+        const permissionModalContent = document.getElementById('permissionModalContent');
+        const permissionName = document.getElementById('permissionName');
+        const permissionReason = document.getElementById('permissionReason');
+        const permissionUse1 = document.getElementById('permissionUse1');
+        const permissionUse2 = document.getElementById('permissionUse2');
+        const permissionUse3 = document.getElementById('permissionUse3');
+        const grantPermissionBtn = document.getElementById('grantPermissionBtn');
+        const denyPermissionBtn = document.getElementById('denyPermissionBtn');
+        const locationToggle = document.getElementById('locationToggle');
+        const notificationsToggle = document.getElementById('notificationsToggle');
+        const cameraToggle = document.getElementById('cameraToggle');
+        const locationPermissionCard = document.getElementById('locationPermissionCard');
+        const notificationsPermissionCard = document.getElementById('notificationsPermissionCard');
+        const cameraPermissionCard = document.getElementById('cameraPermissionCard');
+        const studentList = document.getElementById('studentList');
+        const classNameInput = document.getElementById('classNameInput');
+        const classLocationInput = document.getElementById('classLocationInput');
+        const classDistanceInput = document.getElementById('classDistanceInput');
+        const morningStartInput = document.getElementById('morningStartInput');
+        const morningEndInput = document.getElementById('morningEndInput');
+        const afternoonStartInput = document.getElementById('afternoonStartInput');
+        const afternoonEndInput = document.getElementById('afternoonEndInput');
+        const saveClassBtn = document.getElementById('saveClassBtn');
+        const inviteLinkInput = document.getElementById('inviteLinkInput');
+        const copyInviteLinkBtn = document.getElementById('copyInviteLinkBtn');
+        const requireLocationToggle = document.getElementById('requireLocationToggle');
+        const allowRemoteToggle = document.getElementById('allowRemoteToggle');
+        const attendanceNotificationsToggle = document.getElementById('attendanceNotificationsToggle');
+        const checkinMethodSelect = document.getElementById('checkinMethodSelect');
+        const teacherInstitutionInput = document.getElementById('teacherInstitutionInput');
+        const teacherEmailInput = document.getElementById('teacherEmailInput');
+        const teacherCodeCreateInput = document.getElementById('teacherCodeCreateInput');
 
         // Global Variables
         let isSignUp = false;
@@ -649,16 +1429,21 @@ const firebaseConfig = {
         let classLocation = { lat: 37.7749, lng: -122.4194 }; // Default to San Francisco
         let morningSession = { start: 7, end: 10 }; // 7AM to 10AM
         let afternoonSession = { start: 13, end: 16 }; // 1PM to 4PM
-        let offlineData = {
-            attendance: [],
-            messages: []
+        let requestedPermission = null;
+        let permissionCallbacks = {};
+        let classData = null;
+        let geocoder = null;
+        let permissions = {
+            location: false,
+            notifications: false,
+            camera: false
         };
 
         // Initialize IndexedDB for offline support
         let dbPromise;
         if ('indexedDB' in window) {
             dbPromise = new Promise((resolve, reject) => {
-                const request = indexedDB.open('SecureAttendDB', 1);
+                const request = indexedDB.open('SecureAttendDB', 2);
                 
                 request.onupgradeneeded = (event) => {
                     const db = event.target.result;
@@ -667,6 +1452,9 @@ const firebaseConfig = {
                     }
                     if (!db.objectStoreNames.contains('messages')) {
                         db.createObjectStore('messages', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('settings')) {
+                        db.createObjectStore('settings', { keyPath: 'key' });
                     }
                 };
                 
@@ -687,6 +1475,7 @@ const firebaseConfig = {
             checkAuthState();
             getDeviceFingerprint();
             loadOfflineData();
+            loadPermissions();
             
             // Check network status
             window.addEventListener('online', handleOnline);
@@ -694,26 +1483,60 @@ const firebaseConfig = {
             
             // Initialize tabs
             switchTab('checkin');
+            
+            // Initialize geocoder if available
+            if (typeof google !== 'undefined') {
+                geocoder = new google.maps.Geocoder();
+            }
         }
 
         // Set up event listeners
         function setupEventListeners() {
             // Auth buttons
-            authButton.addEventListener('click', () => authModal.classList.add('active'));
-            loginButton.addEventListener('click', handleAuth);
-            toggleSignUp.addEventListener('click', () => {
-                isSignUp = !isSignUp;
-                toggleSignUp.textContent = isSignUp ? 'Sign In Instead' : 'Create Account';
-            });
+            authButton.addEventListener('click', handleAuthButtonClick);
+            getStartedBtn.addEventListener('click', () => authModal.classList.add('active'));
             
             // Modal auth
             closeAuthModal.addEventListener('click', () => authModal.classList.remove('active'));
             modalAuthButton.addEventListener('click', handleModalAuth);
             modalToggleAuth.addEventListener('click', toggleAuthMode);
             
+            // Teacher modal
+            closeTeacherModal.addEventListener('click', () => teacherModal.classList.remove('active'));
+            registerTeacherBtn.addEventListener('click', registerTeacher);
+            
+            // Report modal
+            closeReportModal.addEventListener('click', () => reportModal.classList.remove('active'));
+            reportBugBtn.addEventListener('click', () => {
+                reportModal.classList.add('active');
+                reportTypeInput.value = 'bug';
+            });
+            teacherReportBtn.addEventListener('click', () => {
+                reportModal.classList.add('active');
+                reportTypeInput.value = 'feature';
+            });
+            submitReportBtn.addEventListener('click', submitReport);
+            
+            // Permission modal
+            closePermissionModal.addEventListener('click', () => permissionModal.classList.remove('active'));
+            grantPermissionBtn.addEventListener('click', grantPermission);
+            denyPermissionBtn.addEventListener('click', denyPermission);
+            
+            // Permission cards
+            locationPermissionCard.addEventListener('click', () => requestPermission('location'));
+            notificationsPermissionCard.addEventListener('click', () => requestPermission('notifications'));
+            cameraPermissionCard.addEventListener('click', () => requestPermission('camera'));
+            
             // Tabs
             tabs.forEach(tab => {
-                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+                    if (tabName.startsWith('teacher')) {
+                        switchTeacherTab(tabName.replace('teacher', '').toLowerCase());
+                    } else {
+                        switchTab(tabName);
+                    }
+                });
             });
             
             // Check-in buttons
@@ -723,10 +1546,14 @@ const firebaseConfig = {
             // Messages
             sendMessageBtn.addEventListener('click', sendMessage);
             
-            // Admin buttons
-            manageClassesBtn.addEventListener('click', manageClasses);
-            exportDataBtn.addEventListener('click', exportData);
+            // Teacher functions
+            saveClassBtn.addEventListener('click', saveClassSettings);
+            copyInviteLinkBtn.addEventListener('click', copyInviteLink);
+            
+            // Logout buttons
             logoutBtn.addEventListener('click', signOut);
+            teacherLogoutBtn.addEventListener('click', signOut);
+            adminLogoutBtn.addEventListener('click', signOut);
             
             // Ripple effect for buttons
             document.addEventListener('click', function(e) {
@@ -734,52 +1561,85 @@ const firebaseConfig = {
                     createRipple(e);
                 }
             });
+            
+            // Permission toggles
+            locationToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                requestPermission('location');
+            });
+            
+            notificationsToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                requestPermission('notifications');
+            });
+            
+            cameraToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                requestPermission('camera');
+            });
+            
+            // Expand permission cards
+            [locationPermissionCard, notificationsPermissionCard, cameraPermissionCard].forEach(card => {
+                card.addEventListener('click', function(e) {
+                    if (e.target === this || e.target.classList.contains('permission-header')) {
+                        this.classList.toggle('expanded');
+                    }
+                });
+            });
+        }
+
+        function handleAuthButtonClick() {
+            if (currentUser) {
+                // Show confirmation before logout
+                showConfirmDialog(
+                    "Sign Out", 
+                    "Are you sure you want to sign out?", 
+                    "You'll need to sign in again to use SecureAttend.",
+                    signOut,
+                    () => {}
+                );
+            } else {
+                authModal.classList.add('active');
+            }
         }
 
         // Authentication handlers
-        function handleAuth() {
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            
-            if (!email || !password) {
-                showToast('Please enter email and password');
-                return;
-            }
-            
-            if (isSignUp) {
-                signUp(email, password);
-            } else {
-                signIn(email, password);
-            }
+        function toggleAuthMode() {
+            isSignUp = !isSignUp;
+            confirmPasswordGroup.style.display = isSignUp ? 'block' : 'none';
+            nameGroup.style.display = isSignUp ? 'block' : 'none';
+            teacherCodeGroup.style.display = isSignUp ? 'block' : 'none';
+            authModalTitle.textContent = isSignUp ? 'Create Account' : 'Sign In';
+            authModalIcon.textContent = isSignUp ? '👩‍🏫' : '🔒';
+            modalAuthButton.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+            modalToggleAuth.textContent = isSignUp ? 'Sign In Instead' : 'Create Account';
         }
 
-        function handleModalAuth() {
-            const email = modalEmailInput.value;
-            const password = modalPasswordInput.value;
-            const confirmPassword = modalConfirmPasswordInput.value;
+        async function handleModalAuth() {
+            const email = modalEmailInput.value.trim();
+            const password = modalPasswordInput.value.trim();
+            const confirmPassword = modalConfirmPasswordInput.value.trim();
+            const name = modalNameInput.value.trim();
+            const teacherCode = modalTeacherCodeInput.value.trim();
             
             if (!email || !password) {
-                showToast('Please enter email and password');
+                showToast('Please enter email and password', '⚠️');
                 return;
             }
             
             if (isSignUp) {
                 if (password !== confirmPassword) {
-                    showToast('Passwords do not match');
+                    showToast('Passwords do not match', '⚠️');
                     return;
                 }
-                signUp(email, password);
+                if (!name) {
+                    showToast('Please enter your name', '⚠️');
+                    return;
+                }
+                await signUp(email, password, name, teacherCode);
             } else {
-                signIn(email, password);
+                await signIn(email, password);
             }
-        }
-
-        function toggleAuthMode() {
-            isSignUp = !isSignUp;
-            confirmPasswordGroup.style.display = isSignUp ? 'block' : 'none';
-            authModalTitle.textContent = isSignUp ? 'Create Account' : 'Sign In';
-            modalAuthButton.textContent = isSignUp ? 'Sign Up' : 'Sign In';
-            modalToggleAuth.textContent = isSignUp ? 'Sign In Instead' : 'Create Account';
         }
 
         async function signIn(email, password) {
@@ -790,19 +1650,22 @@ const firebaseConfig = {
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
                 currentUser = userCredential.user;
                 
-                showToast('Signed in successfully');
+                // Set session cookie
+                Cookies.set('secureAttendSession', 'active', { expires: 7, secure: true, sameSite: 'strict' });
+                
+                showToast('Signed in successfully', '✅');
                 authModal.classList.remove('active');
                 loadUserData();
             } catch (error) {
                 console.error('Sign in error:', error);
-                showToast(error.message);
+                showToast(error.message, '❌');
             } finally {
                 modalAuthButton.disabled = false;
                 modalAuthButton.textContent = isSignUp ? 'Sign Up' : 'Sign In';
             }
         }
 
-        async function signUp(email, password) {
+        async function signUp(email, password, name, teacherCode) {
             try {
                 modalAuthButton.disabled = true;
                 modalAuthButton.innerHTML = '<div class="loading"></div>';
@@ -810,19 +1673,46 @@ const firebaseConfig = {
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 currentUser = userCredential.user;
                 
-                // Create user document in Firestore
-                await db.collection('users').doc(userCredential.user.uid).set({
-                    email: email,
-                    role: 'student',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                // Encrypt sensitive data
+                const encryptedName = encryptData(name);
                 
-                showToast('Account created successfully');
+                // Create user document in Firestore
+                const userData = {
+                    email: email,
+                    name: encryptedName,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                // Check if teacher code is valid
+                if (teacherCode) {
+                    const teacherDoc = await db.collection('teachers').where('code', '==', teacherCode).limit(1).get();
+                    if (!teacherDoc.empty) {
+                        userData.role = 'teacher';
+                        userData.teacherId = teacherDoc.docs[0].id;
+                        userData.classId = teacherDoc.docs[0].data().classId;
+                    }
+                }
+                
+                await db.collection('users').doc(userCredential.user.uid).set(userData);
+                
+                // Set session cookie
+                Cookies.set('secureAttendSession', 'active', { expires: 7, secure: true, sameSite: 'strict' });
+                
+                showToast('Account created successfully', '✅');
                 authModal.classList.remove('active');
                 loadUserData();
+                
+                // Clear form
+                modalEmailInput.value = '';
+                modalPasswordInput.value = '';
+                modalConfirmPasswordInput.value = '';
+                modalNameInput.value = '';
+                modalTeacherCodeInput.value = '';
+                toggleAuthMode();
             } catch (error) {
                 console.error('Sign up error:', error);
-                showToast(error.message);
+                showToast(error.message, '❌');
             } finally {
                 modalAuthButton.disabled = false;
                 modalAuthButton.textContent = isSignUp ? 'Sign Up' : 'Sign In';
@@ -831,34 +1721,58 @@ const firebaseConfig = {
 
         function signOut() {
             auth.signOut().then(() => {
-                showToast('Signed out successfully');
+                // Clear session cookie
+                Cookies.remove('secureAttendSession');
+                
+                showToast('Signed out successfully', '👋');
                 currentUser = null;
                 userData = null;
                 checkAuthState();
             }).catch(error => {
                 console.error('Sign out error:', error);
-                showToast(error.message);
+                showToast(error.message, '❌');
             });
         }
 
         // Check auth state
         function checkAuthState() {
-            auth.onAuthStateChanged(user => {
+            const sessionCookie = Cookies.get('secureAttendSession');
+            
+            auth.onAuthStateChanged(async user => {
                 if (user) {
                     currentUser = user;
                     authButton.textContent = 'Sign Out';
-                    authButton.removeEventListener('click', () => authModal.classList.add('active'));
-                    authButton.addEventListener('click', signOut);
                     loadUserData();
+                    
+                    // Check if we should show auth modal (cookie expired but Firebase session still valid)
+                    if (!sessionCookie) {
+                        Cookies.set('secureAttendSession', 'active', { expires: 7, secure: true, sameSite: 'strict' });
+                    }
                 } else {
                     currentUser = null;
                     userData = null;
-                    authSection.style.display = 'block';
-                    appSection.style.display = 'none';
-                    adminSection.style.display = 'none';
-                    authButton.textContent = 'Sign In';
-                    authButton.removeEventListener('click', signOut);
-                    authButton.addEventListener('click', () => authModal.classList.add('active'));
+                    
+                    // Show auth modal if no session cookie exists
+                    if (!sessionCookie) {
+                        authSection.style.display = 'block';
+                        appSection.style.display = 'none';
+                        teacherSection.style.display = 'none';
+                        adminSection.style.display = 'none';
+                        authButton.textContent = 'Sign In';
+                    } else {
+                        // Cookie exists but no user - try to restore session
+                        try {
+                            await auth.signInWithEmailAndPassword('', '');
+                        } catch (error) {
+                            // Clear invalid cookie
+                            Cookies.remove('secureAttendSession');
+                            authSection.style.display = 'block';
+                            appSection.style.display = 'none';
+                            teacherSection.style.display = 'none';
+                            adminSection.style.display = 'none';
+                            authButton.textContent = 'Sign In';
+                        }
+                    }
                 }
             });
         }
@@ -870,13 +1784,26 @@ const firebaseConfig = {
                 
                 if (doc.exists) {
                     userData = doc.data();
+                    
+                    // Decrypt encrypted fields
+                    if (userData.name) {
+                        userData.name = decryptData(userData.name);
+                    }
+                    
                     updateUI();
                     
-                    if (userData.role === 'admin' || userData.role === 'teacher') {
+                    if (userData.role === 'admin') {
                         appSection.style.display = 'none';
+                        teacherSection.style.display = 'none';
                         adminSection.style.display = 'block';
+                    } else if (userData.role === 'teacher') {
+                        appSection.style.display = 'none';
+                        teacherSection.style.display = 'block';
+                        adminSection.style.display = 'none';
+                        loadTeacherData();
                     } else {
                         appSection.style.display = 'block';
+                        teacherSection.style.display = 'none';
                         adminSection.style.display = 'none';
                     }
                     
@@ -891,19 +1818,344 @@ const firebaseConfig = {
                     // Load messages
                     loadMessages();
                     
-                    // Start location tracking
-                    startLocationTracking();
+                    // Request necessary permissions
+                    requestInitialPermissions();
                     
                     // Update time displays
                     updateTimeDisplays();
                     setInterval(updateTimeDisplays, 1000);
                 } else {
                     console.error('No user data found');
-                    showToast('User data not found');
+                    showToast('User data not found', '⚠️');
                 }
             } catch (error) {
                 console.error('Error loading user data:', error);
-                showToast('Error loading user data');
+                showToast('Error loading user data', '❌');
+            }
+        }
+
+        // Load teacher-specific data
+        async function loadTeacherData() {
+            try {
+                // Check if teacher has a class
+                const teacherDoc = await db.collection('teachers').doc(currentUser.uid).get();
+                
+                if (teacherDoc.exists) {
+                    const teacherData = teacherDoc.data();
+                    
+                    // Load class data
+                    if (teacherData.classId) {
+                        classData = (await db.collection('classes').doc(teacherData.classId).get()).data();
+                        
+                        // Update UI with class data
+                        classNameInput.value = classData.name || '';
+                        classDistanceInput.value = classData.allowedDistance || 200;
+                        morningStartInput.value = classData.morningSession?.start || 7;
+                        morningEndInput.value = classData.morningSession?.end || 10;
+                        afternoonStartInput.value = classData.afternoonSession?.start || 13;
+                        afternoonEndInput.value = classData.afternoonSession?.end || 16;
+                        
+                        // Set location if available
+                        if (classData.location) {
+                            classLocation = {
+                                lat: classData.location.latitude,
+                                lng: classData.location.longitude
+                            };
+                            
+                            // Get address for display
+                            getAddressFromCoords(classLocation.lat, classLocation.lng)
+                                .then(address => {
+                                    classLocationInput.value = address;
+                                });
+                        }
+                        
+                        // Set invite link
+                        inviteLinkInput.value = `${window.location.origin}${window.location.pathname}?class=${teacherData.classId}`;
+                    }
+                    
+                    // Load students
+                    loadStudents();
+                }
+            } catch (error) {
+                console.error('Error loading teacher data:', error);
+                showToast('Error loading teacher data', '❌');
+            }
+        }
+
+        // Load students for teacher
+        async function loadStudents() {
+            try {
+                if (!userData?.classId) return;
+                
+                const studentsSnapshot = await db.collection('users')
+                    .where('classId', '==', userData.classId)
+                    .get();
+                
+                studentList.innerHTML = '';
+                
+                if (studentsSnapshot.empty) {
+                    studentList.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: var(--labelSecondary);">
+                            No students in this class yet
+                        </div>
+                    `;
+                    return;
+                }
+                
+                studentsSnapshot.forEach(doc => {
+                    const student = doc.data();
+                    const studentId = doc.id;
+                    
+                    // Decrypt name if encrypted
+                    if (student.name && typeof student.name === 'string' && student.name.startsWith('ENC:')) {
+                        student.name = decryptData(student.name);
+                    }
+                    
+                    const initials = student.name ? student.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '??';
+                    
+                    const studentItem = document.createElement('div');
+                    studentItem.className = 'student-item';
+                    studentItem.innerHTML = `
+                        <div class="student-avatar">${initials}</div>
+                        <div class="student-info">
+                            <div class="student-name">${student.name || 'Unknown'}</div>
+                            <div class="student-email">${student.email || 'No email'}</div>
+                        </div>
+                        <div class="student-actions">
+                            <button class="action-button warning" data-id="${studentId}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                </svg>
+                            </button>
+                            <button class="action-button danger" data-id="${studentId}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    `;
+                    
+                    studentList.appendChild(studentItem);
+                });
+                
+                // Add event listeners to action buttons
+                document.querySelectorAll('.action-button.warning').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const studentId = btn.dataset.id;
+                        showConfirmDialog(
+                            "Disable Student", 
+                            "Temporarily disable this student?", 
+                            "The student won't be able to check in until you re-enable them.",
+                            () => disableStudent(studentId),
+                            () => {}
+                        );
+                    });
+                });
+                
+                document.querySelectorAll('.action-button.danger').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const studentId = btn.dataset.id;
+                        showConfirmDialog(
+                            "Remove Student", 
+                            "Permanently remove this student?", 
+                            "This action cannot be undone. The student will need a new invite link to rejoin.",
+                            () => removeStudent(studentId),
+                            () => {}
+                        );
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading students:', error);
+                studentList.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--labelSecondary);">
+                        Error loading students
+                    </div>
+                `;
+            }
+        }
+
+        async function disableStudent(studentId) {
+            try {
+                await db.collection('users').doc(studentId).update({
+                    disabled: true,
+                    disabledAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showToast('Student disabled', '✅');
+                loadStudents();
+            } catch (error) {
+                console.error('Error disabling student:', error);
+                showToast('Failed to disable student', '❌');
+            }
+        }
+
+        async function removeStudent(studentId) {
+            try {
+                await db.collection('users').doc(studentId).update({
+                    classId: null,
+                    removedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showToast('Student removed', '✅');
+                loadStudents();
+            } catch (error) {
+                console.error('Error removing student:', error);
+                showToast('Failed to remove student', '❌');
+            }
+        }
+
+        // Save class settings
+        async function saveClassSettings() {
+            try {
+                if (!userData?.classId) return;
+                
+                saveClassBtn.disabled = true;
+                saveClassBtn.innerHTML = '<div class="loading"></div>';
+                
+                const className = classNameInput.value.trim();
+                const allowedDistance = parseInt(classDistanceInput.value) || 200;
+                const morningStart = parseInt(morningStartInput.value) || 7;
+                const morningEnd = parseInt(morningEndInput.value) || 10;
+                const afternoonStart = parseInt(afternoonStartInput.value) || 13;
+                const afternoonEnd = parseInt(afternoonEndInput.value) || 16;
+                
+                // Get location from input
+                let location = classData?.location || null;
+                if (classLocationInput.value.trim() && classLocationInput.value !== classData?.address) {
+                    const coords = await getCoordsFromAddress(classLocationInput.value.trim());
+                    if (coords) {
+                        location = new firebase.firestore.GeoPoint(coords.lat, coords.lng);
+                        classLocation = { lat: coords.lat, lng: coords.lng };
+                    }
+                }
+                
+                await db.collection('classes').doc(userData.classId).update({
+                    name: className,
+                    allowedDistance: allowedDistance,
+                    location: location,
+                    address: classLocationInput.value.trim(),
+                    morningSession: {
+                        start: morningStart,
+                        end: morningEnd
+                    },
+                    afternoonSession: {
+                        start: afternoonStart,
+                        end: afternoonEnd
+                    },
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showToast('Class settings saved', '✅');
+            } catch (error) {
+                console.error('Error saving class settings:', error);
+                showToast('Failed to save settings', '❌');
+            } finally {
+                saveClassBtn.disabled = false;
+                saveClassBtn.textContent = 'Save Changes';
+            }
+        }
+
+        // Copy invite link to clipboard
+        function copyInviteLink() {
+            inviteLinkInput.select();
+            document.execCommand('copy');
+            showToast('Invite link copied', '📋');
+        }
+
+        // Register as teacher
+        async function registerTeacher() {
+            try {
+                const institution = teacherInstitutionInput.value.trim();
+                const email = teacherEmailInput.value.trim();
+                const code = teacherCodeCreateInput.value.trim();
+                
+                if (!institution || !email || !code) {
+                    showToast('Please fill all fields', '⚠️');
+                    return;
+                }
+                
+                if (code.length < 6) {
+                    showToast('Teacher code must be at least 6 characters', '⚠️');
+                    return;
+                }
+                
+                registerTeacherBtn.disabled = true;
+                registerTeacherBtn.innerHTML = '<div class="loading"></div>';
+                
+                // Create a new class
+                const classRef = await db.collection('classes').add({
+                    name: `${institution} Class`,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    teacherId: currentUser.uid
+                });
+                
+                // Register as teacher
+                await db.collection('teachers').doc(currentUser.uid).set({
+                    institution: institution,
+                    email: email,
+                    code: code,
+                    classId: classRef.id,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Update user role
+                await db.collection('users').doc(currentUser.uid).update({
+                    role: 'teacher',
+                    classId: classRef.id
+                });
+                
+                // Update local user data
+                userData.role = 'teacher';
+                userData.classId = classRef.id;
+                
+                showToast('Teacher registration successful!', '🎉');
+                teacherModal.classList.remove('active');
+                
+                // Reload UI
+                updateUI();
+                appSection.style.display = 'none';
+                teacherSection.style.display = 'block';
+                loadTeacherData();
+            } catch (error) {
+                console.error('Teacher registration error:', error);
+                showToast(error.message, '❌');
+            } finally {
+                registerTeacherBtn.disabled = false;
+                registerTeacherBtn.textContent = 'Register as Teacher';
+            }
+        }
+
+        // Submit report
+        async function submitReport() {
+            try {
+                const type = reportTypeInput.value;
+                const description = reportDescriptionInput.value.trim();
+                
+                if (!description) {
+                    showToast('Please describe the issue', '⚠️');
+                    return;
+                }
+                
+                submitReportBtn.disabled = true;
+                submitReportBtn.innerHTML = '<div class="loading"></div>';
+                
+                // In a real app, you would send this to your backend
+                // For this demo, we'll just show a confirmation
+                
+                // Simulate network request
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                showToast('Report submitted successfully', '✅');
+                reportModal.classList.remove('active');
+                reportDescriptionInput.value = '';
+            } catch (error) {
+                console.error('Error submitting report:', error);
+                showToast('Failed to submit report', '❌');
+            } finally {
+                submitReportBtn.disabled = false;
+                submitReportBtn.textContent = 'Submit Report';
             }
         }
 
@@ -911,14 +2163,24 @@ const firebaseConfig = {
         function updateUI() {
             if (!currentUser || !userData) return;
             
-            userName.textContent = userData.name || currentUser.email.split('@')[0];
-            userRole.textContent = userData.role === 'admin' ? 'Administrator' : 
-                                  userData.role === 'teacher' ? 'Teacher' : 'Student';
+            const displayName = userData.name || currentUser.email.split('@')[0];
+            const role = userData.role === 'admin' ? 'Administrator' : 
+                        userData.role === 'teacher' ? 'Teacher' : 'Student';
+            
+            // Update student view
+            userName.textContent = displayName;
+            userRole.textContent = role;
+            
+            // Update teacher view
+            teacherName.textContent = displayName;
             
             // Set avatar initials
-            const name = userData.name || currentUser.email;
-            const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+            const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
             userAvatar.textContent = initials;
+            teacherAvatar.textContent = initials;
+            
+            // Update auth button
+            authButton.textContent = 'Sign Out';
         }
 
         // Tab switching
@@ -940,64 +2202,68 @@ const firebaseConfig = {
             });
         }
 
+        function switchTeacherTab(tabName) {
+            const teacherTabs = document.querySelectorAll('.tab[data-tab^="teacher"]');
+            teacherTabs.forEach(tab => {
+                if (tab.dataset.tab === `teacher${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            const teacherTabContents = document.querySelectorAll('#teacherSection .tab-content');
+            teacherTabContents.forEach(content => {
+                if (content.id === `teacher${tabName.charAt(0).toUpperCase() + tabName.slice(1)}Tab`) {
+                    content.style.display = 'block';
+                } else {
+                    content.style.display = 'none';
+                }
+            });
+        }
+
         // Device fingerprinting
         function getDeviceFingerprint() {
-            if (typeof Fingerprint2 !== 'undefined') {
-                Fingerprint2.get(components => {
-                    const values = components.map(component => component.value);
-                    deviceFingerprint = Fingerprint2.x64hash128(values.join(''), 31);
-                    console.log('Device fingerprint:', deviceFingerprint);
-                });
-            } else {
-                console.warn('FingerprintJS not loaded');
-                // Fallback to simpler fingerprint
-                deviceFingerprint = 'fp-' + Math.random().toString(36).substring(2, 15);
-            }
+            return new Promise((resolve) => {
+                if (typeof Fingerprint2 !== 'undefined') {
+                    Fingerprint2.get(components => {
+                        const values = components.map(component => component.value);
+                        deviceFingerprint = Fingerprint2.x64hash128(values.join(''), 31);
+                        console.log('Device fingerprint:', deviceFingerprint);
+                        resolve(deviceFingerprint);
+                    });
+                } else {
+                    console.warn('FingerprintJS not loaded');
+                    // Fallback to simpler fingerprint
+                    deviceFingerprint = 'fp-' + Math.random().toString(36).substring(2, 15);
+                    resolve(deviceFingerprint);
+                }
+            });
         }
 
-        // Location tracking
-        function startLocationTracking() {
-            if ('geolocation' in navigator) {
-                navigator.geolocation.watchPosition(
+        // Location functions
+        async function getCurrentLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocation not supported'));
+                    return;
+                }
+                
+                navigator.geolocation.getCurrentPosition(
                     position => {
-                        currentLocation = {
+                        resolve({
                             lat: position.coords.latitude,
                             lng: position.coords.longitude
-                        };
-                        
-                        // Get address from coordinates
-                        getAddressFromCoords(currentLocation.lat, currentLocation.lng)
-                            .then(address => {
-                                locationInput.value = address;
-                            })
-                            .catch(error => {
-                                console.error('Geocoding error:', error);
-                                locationInput.value = `${currentLocation.lat.toFixed(6)}, ${currentLocation.lng.toFixed(6)}`;
-                            });
-                        
-                        // Calculate distance from class
-                        if (classLocation) {
-                            const distance = calculateDistance(
-                                currentLocation.lat, currentLocation.lng,
-                                classLocation.lat, classLocation.lng
-                            );
-                            distanceInput.value = `${distance.toFixed(2)} meters`;
-                        }
+                        });
                     },
                     error => {
-                        console.error('Geolocation error:', error);
-                        locationInput.value = 'Location access denied';
-                        distanceInput.value = 'Unknown';
+                        reject(error);
                     },
-                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
-            } else {
-                locationInput.value = 'Geolocation not supported';
-                distanceInput.value = 'Unknown';
-            }
+            });
         }
 
-        // Get address from coordinates
         async function getAddressFromCoords(lat, lng) {
             try {
                 const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
@@ -1017,6 +2283,24 @@ const firebaseConfig = {
             } catch (error) {
                 console.error('Geocoding error:', error);
                 return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            }
+        }
+
+        async function getCoordsFromAddress(address) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+                const data = await response.json();
+                
+                if (data.length > 0) {
+                    return {
+                        lat: parseFloat(data[0].lat),
+                        lng: parseFloat(data[0].lon)
+                    };
+                }
+                return null;
+            } catch (error) {
+                console.error('Geocoding error:', error);
+                return null;
             }
         }
 
@@ -1091,12 +2375,19 @@ const firebaseConfig = {
         // Check-in function
         async function checkIn(sessionType) {
             if (!currentUser || !userData || !deviceFingerprint) {
-                showToast('Authentication required');
+                showToast('Authentication required', '⚠️');
                 return;
             }
             
-            if (!currentLocation) {
-                showToast('Location access required for check-in');
+            if (userData.disabled) {
+                showToast('Your account is disabled', '❌');
+                return;
+            }
+            
+            // Verify permissions
+            if (!permissions.location) {
+                requestPermission('location');
+                showToast('Location permission required', '⚠️');
                 return;
             }
             
@@ -1107,22 +2398,26 @@ const firebaseConfig = {
             // Verify we're within the session time
             const currentHour = now.getHours();
             if (currentHour < sessionTime.start || currentHour >= sessionTime.end) {
-                showToast(`Check-in not available outside ${sessionType} session`);
-                return;
-            }
-            
-            // Verify location (within 200m of class)
-            const distance = calculateDistance(
-                currentLocation.lat, currentLocation.lng,
-                classLocation.lat, classLocation.lng
-            );
-            
-            if (distance > 200) {
-                showToast('You must be within 200m of class to check in');
+                showToast(`Check-in not available outside ${sessionType} session`, '⚠️');
                 return;
             }
             
             try {
+                // Get current location
+                currentLocation = await getCurrentLocation();
+                
+                // Verify location (within allowed distance of class)
+                const distance = calculateDistance(
+                    currentLocation.lat, currentLocation.lng,
+                    classLocation.lat, classLocation.lng
+                );
+                
+                const allowedDistance = classData?.allowedDistance || 200;
+                if (distance > allowedDistance) {
+                    showToast(`You must be within ${allowedDistance}m of class to check in`, '⚠️');
+                    return;
+                }
+                
                 // Disable button during check-in
                 const button = sessionType === 'morning' ? morningCheckinBtn : afternoonCheckinBtn;
                 button.disabled = true;
@@ -1151,7 +2446,7 @@ const firebaseConfig = {
                     .get();
                 
                 if (!existingCheckIn.empty) {
-                    showToast(`Already checked in for ${sessionType} session`);
+                    showToast(`Already checked in for ${sessionType} session`, '⚠️');
                     button.disabled = false;
                     button.textContent = 'Check In';
                     return;
@@ -1167,18 +2462,26 @@ const firebaseConfig = {
                     synced: false
                 });
                 
-                showToast(`${sessionType.charAt(0).toUpperCase() + sessionType.slice(1)} check-in successful`);
+                showToast(`${sessionType.charAt(0).toUpperCase() + sessionType.slice(1)} check-in successful!`, '✅');
                 
                 // Update UI
                 button.disabled = true;
                 button.textContent = 'Checked In';
                 button.classList.remove('button-success');
                 
+                // Update location display
+                getAddressFromCoords(currentLocation.lat, currentLocation.lng)
+                    .then(address => {
+                        locationInput.value = address;
+                    });
+                
+                distanceInput.value = `${distance.toFixed(2)} meters`;
+                
                 // Reload history
                 loadAttendanceHistory();
             } catch (error) {
                 console.error('Check-in error:', error);
-                showToast('Check-in failed: ' + error.message);
+                showToast('Check-in failed: ' + error.message, '❌');
                 
                 // Re-enable button
                 const button = sessionType === 'morning' ? morningCheckinBtn : afternoonCheckinBtn;
@@ -1192,10 +2495,21 @@ const firebaseConfig = {
             if (!currentUser) return;
             
             try {
-                const query = db.collection('attendance')
-                    .where('userId', '==', currentUser.uid)
-                    .orderBy('date', 'desc')
-                    .limit(30);
+                let query;
+                
+                if (userData.role === 'student') {
+                    query = db.collection('attendance')
+                        .where('userId', '==', currentUser.uid)
+                        .orderBy('date', 'desc')
+                        .limit(30);
+                } else if (userData.role === 'teacher' && userData.classId) {
+                    query = db.collection('attendance')
+                        .where('classId', '==', userData.classId)
+                        .orderBy('date', 'desc')
+                        .limit(50);
+                } else {
+                    return;
+                }
                 
                 const snapshot = await query.get();
                 
@@ -1242,14 +2556,26 @@ const firebaseConfig = {
                     
                     const item = document.createElement('div');
                     item.className = 'history-item';
-                    item.innerHTML = `
-                        <div class="history-date">
-                            ${formattedDate} • ${record.session.charAt(0).toUpperCase() + record.session.slice(1)}
-                        </div>
-                        <div class="history-status ${statusClass}">
-                            ${statusText} • ${formattedTime}
-                        </div>
-                    `;
+                    
+                    if (userData.role === 'teacher') {
+                        item.innerHTML = `
+                            <div class="history-date">
+                                ${formattedDate} • ${record.userName || 'Unknown'}
+                            </div>
+                            <div class="history-status ${statusClass}">
+                                ${statusText} • ${record.session} • ${formattedTime}
+                            </div>
+                        `;
+                    } else {
+                        item.innerHTML = `
+                            <div class="history-date">
+                                ${formattedDate} • ${record.session.charAt(0).toUpperCase() + record.session.slice(1)}
+                            </div>
+                            <div class="history-status ${statusClass}">
+                                ${statusText} • ${formattedTime}
+                            </div>
+                        `;
+                    }
                     
                     attendanceHistory.appendChild(item);
                 });
@@ -1269,7 +2595,7 @@ const firebaseConfig = {
                 const doc = await db.collection('classes').doc(classId).get();
                 
                 if (doc.exists) {
-                    const classData = doc.data();
+                    classData = doc.data();
                     
                     // Update class location
                     if (classData.location) {
@@ -1400,7 +2726,6 @@ const firebaseConfig = {
                     messageData.recipientId = userData.teacherId;
                 } else if (userData.role === 'teacher') {
                     // Teachers can specify recipient (or send to class)
-                    // In a real app, you'd have UI for this
                     messageData.recipientId = null; // To whole class
                 }
                 
@@ -1418,64 +2743,235 @@ const firebaseConfig = {
                 messageInput.value = '';
                 loadMessages();
                 
-                showToast('Message sent');
+                showToast('Message sent', '✅');
             } catch (error) {
                 console.error('Error sending message:', error);
-                showToast('Failed to send message');
+                showToast('Failed to send message', '❌');
             } finally {
                 sendMessageBtn.disabled = false;
                 sendMessageBtn.textContent = 'Send';
             }
         }
 
-        // Admin functions
-        function manageClasses() {
-            showToast('Manage classes feature would open here');
-            // In a real app, this would open a class management interface
+        // Permission management
+        function requestInitialPermissions() {
+            // Request location permission if not already granted
+            if (!permissions.location) {
+                setTimeout(() => {
+                    requestPermission('location');
+                }, 1000);
+            }
         }
 
-        async function exportData() {
-            try {
-                exportDataBtn.disabled = true;
-                exportDataBtn.innerHTML = '<div class="loading"></div>';
-                
-                // Get attendance data
-                const snapshot = await db.collection('attendance')
-                    .where('classId', '==', userData.classId)
-                    .orderBy('date', 'desc')
-                    .get();
-                
-                const data = snapshot.docs.map(doc => doc.data());
-                
-                // Convert to CSV
-                let csv = 'Date,Session,Name,Status,Time,Location,Distance\n';
-                
-                data.forEach(item => {
-                    const date = item.date.toDate().toLocaleDateString();
-                    const time = item.timestamp.toDate().toLocaleTimeString();
-                    const location = `"${item.location.latitude},${item.location.longitude}"`;
+        function requestPermission(permission, callback) {
+            requestedPermission = permission;
+            
+            // Store callback if provided
+            if (callback) {
+                permissionCallbacks[permission] = callback;
+            }
+            
+            // Show appropriate permission explanation
+            switch (permission) {
+                case 'location':
+                    permissionModalTitle.textContent = 'Location Access';
+                    permissionModalIcon.textContent = '📍';
+                    permissionName.textContent = 'your location';
+                    permissionReason.textContent = 'We need your location to verify you are physically present in class.';
+                    permissionUse1.textContent = 'Verify your attendance location';
+                    permissionUse2.textContent = 'Ensure you are within the allowed distance';
+                    permissionUse3.textContent = 'Prevent fraudulent check-ins';
+                    break;
                     
-                    csv += `${date},${item.session},${item.userName},${item.status},${time},${location},${item.distance}\n`;
-                });
+                case 'notifications':
+                    permissionModalTitle.textContent = 'Notifications';
+                    permissionModalIcon.textContent = '🔔';
+                    permissionName.textContent = 'notifications';
+                    permissionReason.textContent = 'We can notify you about class reminders and important updates.';
+                    permissionUse1.textContent = 'Send class reminders';
+                    permissionUse2.textContent = 'Notify about schedule changes';
+                    permissionUse3.textContent = 'Alert you about important announcements';
+                    break;
+                    
+                case 'camera':
+                    permissionModalTitle.textContent = 'Camera Access';
+                    permissionModalIcon.textContent = '📷';
+                    permissionName.textContent = 'your camera';
+                    permissionReason.textContent = 'For future photo verification during check-in (optional).';
+                    permissionUse1.textContent = 'Optional photo verification';
+                    permissionUse2.textContent = 'Enhanced security for attendance';
+                    permissionUse3.textContent = 'Not currently required for check-in';
+                    break;
+            }
+            
+            permissionModal.classList.add('active');
+        }
+
+        function grantPermission() {
+            if (!requestedPermission) return;
+            
+            switch (requestedPermission) {
+                case 'location':
+                    // Request geolocation permission
+                    if ('geolocation' in navigator) {
+                        navigator.geolocation.getCurrentPosition(
+                            () => {
+                                permissions.location = true;
+                                updatePermissionUI();
+                                showToast('Location access granted', '✅');
+                                
+                                // Start location tracking
+                                startLocationTracking();
+                                
+                                // Execute callback if exists
+                                if (permissionCallbacks.location) {
+                                    permissionCallbacks.location();
+                                    delete permissionCallbacks.location;
+                                }
+                            },
+                            (error) => {
+                                showToast('Location access denied', '⚠️');
+                                console.error('Geolocation error:', error);
+                            }
+                        );
+                    } else {
+                        showToast('Geolocation not supported', '⚠️');
+                    }
+                    break;
+                    
+                case 'notifications':
+                    // Request notification permission
+                    if ('Notification' in window) {
+                        Notification.requestPermission().then(permission => {
+                            if (permission === 'granted') {
+                                permissions.notifications = true;
+                                updatePermissionUI();
+                                showToast('Notifications enabled', '✅');
+                                
+                                // Execute callback if exists
+                                if (permissionCallbacks.notifications) {
+                                    permissionCallbacks.notifications();
+                                    delete permissionCallbacks.notifications;
+                                }
+                            } else {
+                                showToast('Notifications blocked', '⚠️');
+                            }
+                        });
+                    } else {
+                        showToast('Notifications not supported', '⚠️');
+                    }
+                    break;
+                    
+                case 'camera':
+                    // Request camera permission
+                    if ('mediaDevices' in navigator) {
+                        navigator.mediaDevices.getUserMedia({ video: true })
+                            .then(stream => {
+                                // Immediately stop the stream as we don't need it yet
+                                stream.getTracks().forEach(track => track.stop());
+                                
+                                permissions.camera = true;
+                                updatePermissionUI();
+                                showToast('Camera access granted', '✅');
+                                
+                                // Execute callback if exists
+                                if (permissionCallbacks.camera) {
+                                    permissionCallbacks.camera();
+                                    delete permissionCallbacks.camera;
+                                }
+                            })
+                            .catch(error => {
+                                showToast('Camera access denied', '⚠️');
+                                console.error('Camera error:', error);
+                            });
+                    } else {
+                        showToast('Camera not supported', '⚠️');
+                    }
+                    break;
+            }
+            
+            permissionModal.classList.remove('active');
+            requestedPermission = null;
+        }
+
+        function denyPermission() {
+            showToast(`${requestedPermission} permission denied`, '⚠️');
+            permissionModal.classList.remove('active');
+            requestedPermission = null;
+        }
+
+        function updatePermissionUI() {
+            locationToggle.classList.toggle('active', permissions.location);
+            notificationsToggle.classList.toggle('active', permissions.notifications);
+            cameraToggle.classList.toggle('active', permissions.camera);
+        }
+
+        function loadPermissions() {
+            if (!dbPromise) return;
+            
+            dbPromise.then(db => {
+                const tx = db.transaction('settings', 'readonly');
+                const store = tx.objectStore('settings');
+                const request = store.get('permissions');
                 
-                // Create download link
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `attendance_${new Date().toISOString().split('T')[0]}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                showToast('Data exported successfully');
-            } catch (error) {
-                console.error('Export error:', error);
-                showToast('Failed to export data');
-            } finally {
-                exportDataBtn.disabled = false;
-                exportDataBtn.textContent = 'Export Attendance Data';
+                request.onsuccess = () => {
+                    if (request.result) {
+                        permissions = request.result.value;
+                        updatePermissionUI();
+                    }
+                };
+            });
+        }
+
+        function savePermissions() {
+            if (!dbPromise) return;
+            
+            dbPromise.then(db => {
+                const tx = db.transaction('settings', 'readwrite');
+                const store = tx.objectStore('settings');
+                store.put({ key: 'permissions', value: permissions });
+            });
+        }
+
+        // Location tracking
+        function startLocationTracking() {
+            if ('geolocation' in navigator && permissions.location) {
+                navigator.geolocation.watchPosition(
+                    position => {
+                        currentLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        
+                        // Get address from coordinates
+                        getAddressFromCoords(currentLocation.lat, currentLocation.lng)
+                            .then(address => {
+                                locationInput.value = address;
+                            })
+                            .catch(error => {
+                                console.error('Geocoding error:', error);
+                                locationInput.value = `${currentLocation.lat.toFixed(6)}, ${currentLocation.lng.toFixed(6)}`;
+                            });
+                        
+                        // Calculate distance from class
+                        if (classLocation) {
+                            const distance = calculateDistance(
+                                currentLocation.lat, currentLocation.lng,
+                                classLocation.lat, classLocation.lng
+                            );
+                            distanceInput.value = `${distance.toFixed(2)} meters`;
+                        }
+                    },
+                    error => {
+                        console.error('Geolocation error:', error);
+                        locationInput.value = 'Location access denied';
+                        distanceInput.value = 'Unknown';
+                    },
+                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+                );
+            } else {
+                locationInput.value = 'Geolocation not supported';
+                distanceInput.value = 'Unknown';
             }
         }
 
@@ -1578,21 +3074,54 @@ const firebaseConfig = {
 
         function handleOnline() {
             syncOfflineData();
-            showToast('Back online - syncing data');
+            showToast('Back online - syncing data', '🌐');
         }
 
         function handleOffline() {
-            showToast('Offline - working locally');
+            showToast('Offline - working locally', '📴');
+        }
+
+        // Data encryption
+        function encryptData(data) {
+            try {
+                return 'ENC:' + CryptoJS.AES.encrypt(data, ENCRYPTION_KEY).toString();
+            } catch (error) {
+                console.error('Encryption error:', error);
+                return data;
+            }
+        }
+
+        function decryptData(encryptedData) {
+            try {
+                if (encryptedData.startsWith('ENC:')) {
+                    const bytes = CryptoJS.AES.decrypt(encryptedData.substring(4), ENCRYPTION_KEY);
+                    return bytes.toString(CryptoJS.enc.Utf8) || encryptedData;
+                }
+                return encryptedData;
+            } catch (error) {
+                console.error('Decryption error:', error);
+                return encryptedData;
+            }
         }
 
         // UI Helpers
-        function showToast(message) {
-            toast.textContent = message;
+        function showToast(message, icon = 'ℹ️') {
+            toastMessage.textContent = message;
+            toastIcon.textContent = icon;
             toast.classList.add('show');
             
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 3000);
+        }
+
+        function showConfirmDialog(title, message, details, confirmAction, cancelAction) {
+            // In a real app, you would implement a proper modal dialog
+            if (confirm(`${title}\n\n${message}\n\n${details}\n\nPress OK to confirm.`)) {
+                confirmAction();
+            } else {
+                cancelAction();
+            }
         }
 
         function createRipple(event) {
@@ -1624,6 +3153,62 @@ const firebaseConfig = {
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', init);
+
+        // Check for class invite link on load
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const classId = urlParams.get('class');
+            
+            if (classId) {
+                // Store class ID for when user signs up
+                localStorage.setItem('secureAttendClassId', classId);
+                
+                // If already signed in, join the class
+                if (currentUser) {
+                    joinClass(classId);
+                }
+            }
+        });
+
+        async function joinClass(classId) {
+            try {
+                // Verify class exists
+                const classDoc = await db.collection('classes').doc(classId).get();
+                
+                if (!classDoc.exists) {
+                    showToast('Invalid class invite', '⚠️');
+                    return;
+                }
+                
+                // Update user's class
+                await db.collection('users').doc(currentUser.uid).update({
+                    classId: classId,
+                    teacherId: classDoc.data().teacherId
+                });
+                
+                // Update local user data
+                userData.classId = classId;
+                userData.teacherId = classDoc.data().teacherId;
+                
+                showToast('Joined class successfully!', '✅');
+                
+                // Remove class ID from storage
+                localStorage.removeItem('secureAttendClassId');
+                
+                // Remove from URL without reload
+                const url = new URL(window.location);
+                url.searchParams.delete('class');
+                window.history.replaceState({}, '', url);
+                
+                // Reload data
+                loadClassData(classId);
+                loadAttendanceHistory();
+                loadMessages();
+            } catch (error) {
+                console.error('Error joining class:', error);
+                showToast('Failed to join class', '❌');
+            }
+        }
     </script>
 </body>
 </html>
